@@ -17,6 +17,10 @@ Een moderne webapplicatie gebouwd met React, TypeScript, Material UI v5 en Supab
 - 📊 Dashboard met statistieken
 - ⚙️ Instellingen
 
+## ⚠️ VOOR ELKE COMMIT: Lees BUILD_CHECKLIST.md!
+
+**Voorkom build errors:** Voer `npm run precommit` uit voor elke commit.
+
 ## 🚀 Quick Start
 
 ### 1. Installeer dependencies
