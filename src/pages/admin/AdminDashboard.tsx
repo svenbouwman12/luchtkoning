@@ -15,7 +15,6 @@ import EuroIcon from '@mui/icons-material/Euro';
 import { supabase } from '@/lib/supabase';
 import { DashboardStats } from '@/types/database.types';
 import { startOfMonth, startOfToday, format } from 'date-fns';
-import { nl } from 'date-fns/locale';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);

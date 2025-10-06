@@ -20,11 +20,9 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Chip,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
 import { supabase } from '@/lib/supabase';
 import { Item, BookingFormData } from '@/types/database.types';
 import { differenceInDays, isAfter, isBefore, parseISO } from 'date-fns';
@@ -43,7 +41,6 @@ export default function BookingPage() {
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   const [formData, setFormData] = useState<BookingFormData>({
     customerName: '',

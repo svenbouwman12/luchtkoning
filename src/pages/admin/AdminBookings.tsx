@@ -21,7 +21,6 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel,
   List,
   ListItem,
   ListItemText,
