@@ -7,7 +7,6 @@ import {
   Paper,
   Chip,
   CircularProgress,
-  Alert,
 } from '@mui/material';
 import {
   addDays,
@@ -22,7 +21,7 @@ import {
 } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { DateAvailability } from '@/types/database.types';
-import { getDateAvailability, getStatusColor, getStatusLabel } from '@/lib/availability';
+import { getDateAvailability, getStatusColor } from '@/lib/availability';
 
 interface AvailabilityCalendarProps {
   selectedDate: Date | null;

@@ -232,10 +232,6 @@ export default function BookingPage() {
   };
 
   const totalPrice = calculateTotal();
-  const numberOfDays =
-    formData.startDate && formData.endDate
-      ? differenceInDays(formData.endDate, formData.startDate) + 1
-      : 0;
 
   const canProceedToNextStep = () => {
     switch (activeStep) {

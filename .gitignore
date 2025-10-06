@@ -28,3 +28,10 @@ dist-ssr
 .env.local
 .env.production
 
+# Backup files (to prevent type errors)
+*Old.tsx
+*Old.ts
+*Backup.tsx
+*Backup.ts
+*.backup
+

@@ -9,16 +9,13 @@ import {
   CircularProgress,
   Grid,
   FormControl,
-  FormLabel,
   FormGroup,
   FormControlLabel,
   Checkbox,
   Chip,
-  IconButton,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
 import { supabase } from '@/lib/supabase';
 import { Settings } from '@/types/database.types';
 

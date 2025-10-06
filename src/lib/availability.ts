@@ -1,7 +1,7 @@
 // Beschikbaarheid check functies voor boekingen
 import { supabase } from './supabase';
 import { AvailabilityStatus, DateAvailability, TimeSlotAvailability } from '@/types/database.types';
-import { format, parseISO, isSameDay } from 'date-fns';
+import { format } from 'date-fns';
 
 /**
  * Haal werkdagen en tijdslots op uit settings
