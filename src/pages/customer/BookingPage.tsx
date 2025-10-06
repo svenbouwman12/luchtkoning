@@ -243,7 +243,6 @@ export default function BookingPage() {
 
       if (itemsError) throw itemsError;
 
-      setSuccess(true);
       // Navigeer naar bevestigingspagina
       navigate(`/confirmation?bookingId=${booking.id}`);
     } catch (err) {
