@@ -275,7 +275,7 @@ export default function AdminSettings() {
             Werkdagen
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Selecteer de dagen waarop klanten kunnen boeken
+            Selecteer de dagen waarop klanten kunnen boeken. Niet-geselecteerde dagen worden grijs weergegeven in de kalender als "Gesloten".
           </Typography>
 
           <FormControl component="fieldset">
@@ -379,18 +379,19 @@ export default function AdminSettings() {
       {/* Info Box */}
       <Paper sx={{ p: 3, mt: 3, bgcolor: 'info.light' }}>
         <Typography variant="h6" gutterBottom color="info.contrastText">
-          ℹ️ Live Beschikbaarheid
+          ℹ️ Live Beschikbaarheid Kalender
         </Typography>
         <Typography variant="body2" color="info.contrastText">
-          De kalender op de boekingspagina toont nu live de beschikbaarheid:
+          De kalender op de boekingspagina toont live de beschikbaarheid met kleuren:
         </Typography>
         <Box component="ul" sx={{ mt: 1, color: 'info.contrastText' }}>
-          <li>🟢 Groen = Beschikbaar</li>
-          <li>🟠 Oranje = In afwachting</li>
-          <li>🔴 Rood = Geboekt/Niet beschikbaar</li>
+          <li>🟢 Groen = Beschikbaar op een werkdag</li>
+          <li>🟠 Oranje = In afwachting / Deels bezet</li>
+          <li>🔴 Rood = Volledig geboekt</li>
+          <li>⚪ Grijs = Gesloten (geen werkdag)</li>
         </Box>
         <Typography variant="body2" color="info.contrastText" sx={{ mt: 1 }}>
-          Klanten kunnen alleen boeken op werkdagen en binnen de ingestelde tijdslots.
+          Klanten kunnen alleen boeken op werkdagen (niet-grijs) en binnen de ingestelde tijdslots.
         </Typography>
       </Paper>
     </Box>

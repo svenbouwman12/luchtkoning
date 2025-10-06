@@ -113,9 +113,16 @@ export default function AvailabilityCalendar({
           const isPast = isBefore(day, startOfDay(new Date()));
           const isCurrentDay = isToday(day);
 
-          const bgColor = dayAvail
-            ? getStatusColor(dayAvail.status)
-            : '#e0e0e0';
+          // Bepaal achtergrondkleur
+          let bgColor = '#e0e0e0'; // Default grijs
+          
+          if (isPast) {
+            bgColor = '#f5f5f5'; // Licht grijs voor verleden
+          } else if (dayAvail?.isWorkingDay) {
+            bgColor = getStatusColor(dayAvail.status); // Status kleur voor werkdagen
+          } else {
+            bgColor = '#e0e0e0'; // Grijs voor niet-werkdagen
+          }
 
           const canSelect = dayAvail?.isWorkingDay && !isPast;
 
@@ -127,7 +134,7 @@ export default function AvailabilityCalendar({
                   height: 60,
                   p: 0.5,
                   cursor: canSelect ? 'pointer' : 'not-allowed',
-                  bgcolor: isPast ? '#f5f5f5' : bgColor,
+                  bgcolor: bgColor,
                   opacity: isPast ? 0.5 : 1,
                   border: isSelected ? '2px solid #1976d2' : '1px solid #ddd',
                   borderRadius: 2,
@@ -145,7 +152,7 @@ export default function AvailabilityCalendar({
                   variant="body2"
                   sx={{
                     fontWeight: isCurrentDay ? 700 : 400,
-                    color: isPast ? '#999' : '#fff',
+                    color: isPast || !dayAvail?.isWorkingDay ? '#999' : '#fff',
                     textAlign: 'center',
                   }}
                 >
@@ -217,6 +224,11 @@ export default function AvailabilityCalendar({
           label="Geboekt"
           size="small"
           sx={{ bgcolor: '#f44336', color: '#fff' }}
+        />
+        <Chip
+          label="Gesloten"
+          size="small"
+          sx={{ bgcolor: '#e0e0e0', color: '#999' }}
         />
       </Box>
 
