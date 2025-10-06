@@ -34,9 +34,7 @@ export function isWorkingDay(date: Date, workingDays: number[]): boolean {
 /**
  * Haal alle boekingen op voor een specifieke datum en item
  */
-export async function getBookingsForDateAndItem(date: Date, itemId: string) {
-  const dateString = format(date, 'yyyy-MM-dd');
-
+export async function getBookingsForDateAndItem(_date: Date, itemId: string) {
   const { data, error } = await supabase
     .from('booking_items')
     .select(`
@@ -62,8 +60,8 @@ export async function getBookingsForDateAndItem(date: Date, itemId: string) {
 export async function getAvailableStock(
   itemId: string,
   date: Date,
-  timeSlot: string,
-  settings: any
+  _timeSlot: string,
+  _settings: any
 ): Promise<number> {
   // Haal item info op
   const { data: item, error: itemError } = await supabase

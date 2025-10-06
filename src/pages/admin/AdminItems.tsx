@@ -27,7 +27,7 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { supabase } from '@/lib/supabase';
-import { Item, ItemFormData } from '@/types/database.types';
+import { Item } from '@/types/database.types';
 
 export default function AdminItems() {
   const [items, setItems] = useState<Item[]>([]);
