@@ -9,6 +9,7 @@ export interface Item {
   category: string;
   available: boolean;
   image_url: string | null;
+  stock_quantity: number; // Aantal beschikbare exemplaren
   created_at: string;
   updated_at: string;
 }
@@ -57,6 +58,8 @@ export interface Settings {
   working_days: number[]; // 0=zondag, 1=maandag, etc.
   time_slots: string[]; // ["09:00", "10:00", etc.]
   default_booking_duration: number; // in uren
+  pickup_time: string; // Tijd wanneer items opgehaald worden (bijv. "12:00")
+  available_after_pickup_hours: number; // Uren na ophalen voordat item weer beschikbaar is
   updated_at: string;
 }
 
@@ -97,6 +100,7 @@ export interface ItemFormData {
   category: string;
   available: boolean;
   image_url: string;
+  stock_quantity: number;
 }
 
 // Statistieken voor dashboard

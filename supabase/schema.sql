@@ -13,6 +13,7 @@ CREATE TABLE items (
     category TEXT NOT NULL,
     available BOOLEAN DEFAULT true,
     image_url TEXT,
+    stock_quantity INTEGER DEFAULT 1,  -- Aantal beschikbare exemplaren
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -68,6 +69,10 @@ CREATE TABLE settings (
     time_slots JSONB DEFAULT '["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00"]'::jsonb,
     -- Standaard boekingsduur in uren
     default_booking_duration INTEGER DEFAULT 4,
+    -- Ophaaltijd (wanneer items worden opgehaald de dag na einde boeking)
+    pickup_time TIME DEFAULT '12:00',
+    -- Beschikbaar vanaf tijd (na ophalen en schoonmaken)
+    available_after_pickup_hours INTEGER DEFAULT 3,  -- Aantal uren na ophalen
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -125,13 +130,13 @@ CREATE TRIGGER update_customer_spent_on_booking AFTER INSERT OR UPDATE ON bookin
     FOR EACH ROW EXECUTE FUNCTION update_customer_total_spent();
 
 -- Sample data (optioneel, voor testen)
-INSERT INTO items (name, description, price_per_day, category, image_url) VALUES
-    ('Grote Springkussen', 'Kleurrijk springkussen 4x4 meter, geschikt voor kinderen tot 12 jaar', 75.00, 'Springkussens', 'https://images.unsplash.com/photo-1530103043960-ef38714abb15?w=400'),
-    ('Kleine Springkussen', 'Compact springkussen 3x3 meter, ideaal voor kleinere ruimtes', 50.00, 'Springkussens', 'https://images.unsplash.com/photo-1464207687429-7505649dae38?w=400'),
-    ('Feesttent 6x3m', 'Witte feesttent met zijwanden, geschikt voor 30 personen', 125.00, 'Feesttenten', 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=400'),
-    ('Feesttent 8x4m', 'Grote feesttent met zijwanden, geschikt voor 50 personen', 175.00, 'Feesttenten', 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=400'),
-    ('Partytafel', 'Inklapbare partytafel 180x80cm', 15.00, 'Meubilair', 'https://images.unsplash.com/photo-1617806118233-18e1de247200?w=400'),
-    ('Partystoel', 'Klapstoelen, beschikbaar per 10 stuks', 2.50, 'Meubilair', 'https://images.unsplash.com/photo-1503602642458-232111445657?w=400');
+INSERT INTO items (name, description, price_per_day, category, stock_quantity, image_url) VALUES
+    ('Grote Springkussen', 'Kleurrijk springkussen 4x4 meter, geschikt voor kinderen tot 12 jaar', 75.00, 'Springkussens', 1, 'https://images.unsplash.com/photo-1530103043960-ef38714abb15?w=400'),
+    ('Kleine Springkussen', 'Compact springkussen 3x3 meter, ideaal voor kleinere ruimtes', 50.00, 'Springkussens', 2, 'https://images.unsplash.com/photo-1464207687429-7505649dae38?w=400'),
+    ('Feesttent 6x3m', 'Witte feesttent met zijwanden, geschikt voor 30 personen', 125.00, 'Feesttenten', 1, 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=400'),
+    ('Feesttent 8x4m', 'Grote feesttent met zijwanden, geschikt voor 50 personen', 175.00, 'Feesttenten', 1, 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=400'),
+    ('Partytafel', 'Inklapbare partytafel 180x80cm', 15.00, 'Meubilair', 10, 'https://images.unsplash.com/photo-1617806118233-18e1de247200?w=400'),
+    ('Partystoel', 'Klapstoelen, beschikbaar per 10 stuks', 2.50, 'Meubilair', 100, 'https://images.unsplash.com/photo-1503602642458-232111445657?w=400');
 
 -- Row Level Security (RLS) - optioneel voor later
 -- ALTER TABLE items ENABLE ROW LEVEL SECURITY;

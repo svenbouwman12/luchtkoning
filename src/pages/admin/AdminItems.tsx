@@ -37,13 +37,14 @@ export default function AdminItems() {
   
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
-  const [formData, setFormData] = useState<ItemFormData>({
+  const [formData, setFormData] = useState({
     name: '',
     description: '',
     price_per_day: 0,
     category: '',
     available: true,
     image_url: '',
+    stock_quantity: 1,
   });
 
   useEffect(() => {
@@ -77,6 +78,7 @@ export default function AdminItems() {
         category: item.category,
         available: item.available,
         image_url: item.image_url || '',
+        stock_quantity: item.stock_quantity || 1,
       });
     } else {
       setEditingItem(null);
@@ -87,6 +89,7 @@ export default function AdminItems() {
         category: '',
         available: true,
         image_url: '',
+        stock_quantity: 1,
       });
     }
     setDialogOpen(true);
@@ -183,6 +186,7 @@ export default function AdminItems() {
               <TableCell>Naam</TableCell>
               <TableCell>Categorie</TableCell>
               <TableCell>Prijs/dag</TableCell>
+              <TableCell>Voorraad</TableCell>
               <TableCell>Beschikbaar</TableCell>
               <TableCell>Acties</TableCell>
             </TableRow>
@@ -210,6 +214,13 @@ export default function AdminItems() {
                   <Chip label={item.category} size="small" />
                 </TableCell>
                 <TableCell>€{item.price_per_day.toFixed(2)}</TableCell>
+                <TableCell>
+                  <Chip
+                    label={`${item.stock_quantity || 1}x`}
+                    size="small"
+                    variant="outlined"
+                  />
+                </TableCell>
                 <TableCell>
                   <Chip
                     label={item.available ? 'Ja' : 'Nee'}
@@ -294,6 +305,21 @@ export default function AdminItems() {
                 setFormData({ ...formData, image_url: e.target.value })
               }
               placeholder="https://..."
+            />
+            <TextField
+              fullWidth
+              label="Voorraad (aantal exemplaren)"
+              type="number"
+              value={formData.stock_quantity}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  stock_quantity: parseInt(e.target.value) || 1,
+                })
+              }
+              required
+              inputProps={{ min: 1 }}
+              helperText="Aantal exemplaren van dit artikel dat beschikbaar is voor verhuur"
             />
             <FormControlLabel
               control={

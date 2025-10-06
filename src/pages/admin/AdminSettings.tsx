@@ -46,6 +46,8 @@ export default function AdminSettings() {
     working_days: [1, 2, 3, 4, 5, 6] as number[],
     time_slots: ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'] as string[],
     default_booking_duration: 4,
+    pickup_time: '12:00',
+    available_after_pickup_hours: 3,
   });
 
   const [newTimeSlot, setNewTimeSlot] = useState('');
@@ -77,6 +79,8 @@ export default function AdminSettings() {
           working_days: data.working_days || [1, 2, 3, 4, 5, 6],
           time_slots: data.time_slots || [],
           default_booking_duration: data.default_booking_duration || 4,
+          pickup_time: data.pickup_time || '12:00',
+          available_after_pickup_hours: data.available_after_pickup_hours || 3,
         });
       }
     } catch (err) {
@@ -346,20 +350,81 @@ export default function AdminSettings() {
             Boekingsinstellingen
           </Typography>
 
-          <TextField
-            fullWidth
-            label="Standaard boekingsduur (uren)"
-            type="number"
-            value={formData.default_booking_duration}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                default_booking_duration: parseInt(e.target.value) || 1,
-              })
-            }
-            inputProps={{ min: 1, max: 24 }}
-            helperText="Standaard aantal uren per boeking"
-          />
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Standaard boekingsduur (uren)"
+                type="number"
+                value={formData.default_booking_duration}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    default_booking_duration: parseInt(e.target.value) || 1,
+                  })
+                }
+                inputProps={{ min: 1, max: 24 }}
+                helperText="Standaard aantal uren per boeking"
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Ophaaltijd"
+                type="time"
+                value={formData.pickup_time}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    pickup_time: e.target.value,
+                  })
+                }
+                InputLabelProps={{ shrink: true }}
+                helperText="Tijd waarop items de volgende dag worden opgehaald"
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Beschikbaar na ophalen (uren)"
+                type="number"
+                value={formData.available_after_pickup_hours}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    available_after_pickup_hours: parseInt(e.target.value) || 1,
+                  })
+                }
+                inputProps={{ min: 1, max: 24 }}
+                helperText="Aantal uren na ophalen voordat item weer beschikbaar is"
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <Alert severity="info">
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  <strong>Voorbeeld:</strong>
+                </Typography>
+                <Typography variant="body2">
+                  Een artikel is geboekt tot 17:00. Het wordt de volgende dag om{' '}
+                  <strong>{formData.pickup_time}</strong> opgehaald. Na schoonmaken
+                  is het{' '}
+                  <strong>{formData.available_after_pickup_hours} uur</strong>{' '}
+                  later (om{' '}
+                  <strong>
+                    {(() => {
+                      const [hours] = formData.pickup_time.split(':').map(Number);
+                      const newHour = (hours + formData.available_after_pickup_hours) % 24;
+                      return `${String(newHour).padStart(2, '0')}:00`;
+                    })()}
+                  </strong>
+                  ) weer beschikbaar voor verhuur.
+                </Typography>
+              </Alert>
+            </Grid>
+          </Grid>
         </Paper>
 
         {/* Save button */}

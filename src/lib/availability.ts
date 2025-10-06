@@ -9,7 +9,7 @@ import { format } from 'date-fns';
 export async function getBookingSettings() {
   const { data, error } = await supabase
     .from('settings')
-    .select('working_days, time_slots, default_booking_duration')
+    .select('working_days, time_slots, default_booking_duration, pickup_time, available_after_pickup_hours')
     .single();
 
   if (error) throw error;
@@ -18,6 +18,8 @@ export async function getBookingSettings() {
     workingDays: data.working_days as number[],
     timeSlots: data.time_slots as string[],
     defaultDuration: data.default_booking_duration,
+    pickupTime: data.pickup_time as string,
+    availableAfterPickupHours: data.available_after_pickup_hours as number,
   };
 }
 
@@ -30,19 +32,88 @@ export function isWorkingDay(date: Date, workingDays: number[]): boolean {
 }
 
 /**
- * Haal alle boekingen op voor een specifieke datum
+ * Haal alle boekingen op voor een specifieke datum en item
  */
-export async function getBookingsForDate(date: Date) {
+export async function getBookingsForDateAndItem(date: Date, itemId: string) {
   const dateString = format(date, 'yyyy-MM-dd');
 
   const { data, error } = await supabase
-    .from('bookings')
-    .select('id, start_date, end_date, start_time, end_time, status')
-    .lte('start_date', dateString)
-    .gte('end_date', dateString);
+    .from('booking_items')
+    .select(`
+      quantity,
+      bookings!inner(
+        id,
+        start_date,
+        end_date,
+        start_time,
+        end_time,
+        status
+      )
+    `)
+    .eq('item_id', itemId);
 
   if (error) throw error;
   return data || [];
+}
+
+/**
+ * Bereken hoeveel exemplaren van een item beschikbaar zijn op een tijdslot
+ */
+export async function getAvailableStock(
+  itemId: string,
+  date: Date,
+  timeSlot: string,
+  settings: any
+): Promise<number> {
+  // Haal item info op
+  const { data: item, error: itemError } = await supabase
+    .from('items')
+    .select('stock_quantity')
+    .eq('id', itemId)
+    .single();
+
+  if (itemError || !item) return 0;
+
+  const totalStock = item.stock_quantity;
+  const dateString = format(date, 'yyyy-MM-dd');
+
+  // Haal alle actieve boekingen op voor dit item
+  const { data: bookings, error } = await supabase
+    .from('booking_items')
+    .select(`
+      quantity,
+      bookings!inner(
+        start_date,
+        end_date,
+        start_time,
+        end_time,
+        status
+      )
+    `)
+    .eq('item_id', itemId);
+
+  if (error) return 0;
+
+  let bookedQuantity = 0;
+
+  // Bereken hoeveel exemplaren geboekt zijn
+  for (const booking of bookings || []) {
+    const bookingData = (booking as any).bookings;
+    
+    // Skip geannuleerde boekingen
+    if (bookingData.status === 'geannuleerd') continue;
+
+    const startDate = bookingData.start_date;
+    const endDate = bookingData.end_date;
+
+    // Check of deze boeking overlapt met de opgevraagde datum
+    if (startDate <= dateString && dateString <= endDate) {
+      // Boeking overlapt met deze dag
+      bookedQuantity += booking.quantity;
+    }
+  }
+
+  return Math.max(0, totalStock - bookedQuantity);
 }
 
 /**
