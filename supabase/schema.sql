@@ -36,6 +36,8 @@ CREATE TABLE bookings (
     customer_id UUID REFERENCES customers(id) ON DELETE CASCADE,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
+    start_time TIME NOT NULL DEFAULT '09:00',
+    end_time TIME NOT NULL DEFAULT '17:00',
     total_price NUMERIC(10, 2) NOT NULL,
     status TEXT DEFAULT 'in behandeling',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -60,16 +62,25 @@ CREATE TABLE settings (
     company_address TEXT,
     vat_percentage NUMERIC(5, 2) DEFAULT 21.00,
     currency TEXT DEFAULT 'EUR',
+    -- Werkdagen configuratie (JSON array: [1,2,3,4,5,6,0] waarbij 0=zondag, 1=maandag, etc.)
+    working_days JSONB DEFAULT '[1,2,3,4,5,6]'::jsonb,
+    -- Tijdslots configuratie (JSON array van tijden: ["09:00", "10:00", "11:00", etc.])
+    time_slots JSONB DEFAULT '["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00"]'::jsonb,
+    -- Standaard boekingsduur in uren
+    default_booking_duration INTEGER DEFAULT 4,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Insert default settings
-INSERT INTO settings (company_name, company_email, company_phone, vat_percentage)
-VALUES ('LuchtKoning', 'info@luchtkoning.nl', '+31 6 12345678', 21.00);
+INSERT INTO settings (company_name, company_email, company_phone, vat_percentage, working_days, time_slots)
+VALUES ('LuchtKoning', 'info@luchtkoning.nl', '+31 6 12345678', 21.00, 
+        '[1,2,3,4,5,6]'::jsonb, 
+        '["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00"]'::jsonb);
 
 -- Indexes voor betere performance
 CREATE INDEX idx_bookings_customer ON bookings(customer_id);
 CREATE INDEX idx_bookings_dates ON bookings(start_date, end_date);
+CREATE INDEX idx_bookings_datetime ON bookings(start_date, start_time, end_date, end_time);
 CREATE INDEX idx_booking_items_booking ON booking_items(booking_id);
 CREATE INDEX idx_booking_items_item ON booking_items(item_id);
 

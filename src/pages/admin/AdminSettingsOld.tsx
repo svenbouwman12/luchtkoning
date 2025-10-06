@@ -8,29 +8,10 @@ import {
   Alert,
   CircularProgress,
   Grid,
-  FormControl,
-  FormLabel,
-  FormGroup,
-  FormControlLabel,
-  Checkbox,
-  Chip,
-  IconButton,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
-import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
 import { supabase } from '@/lib/supabase';
 import { Settings } from '@/types/database.types';
-
-const weekDays = [
-  { value: 1, label: 'Maandag' },
-  { value: 2, label: 'Dinsdag' },
-  { value: 3, label: 'Woensdag' },
-  { value: 4, label: 'Donderdag' },
-  { value: 5, label: 'Vrijdag' },
-  { value: 6, label: 'Zaterdag' },
-  { value: 0, label: 'Zondag' },
-];
 
 export default function AdminSettings() {
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -46,12 +27,7 @@ export default function AdminSettings() {
     company_address: '',
     vat_percentage: 21.0,
     currency: 'EUR',
-    working_days: [1, 2, 3, 4, 5, 6] as number[],
-    time_slots: ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'] as string[],
-    default_booking_duration: 4,
   });
-
-  const [newTimeSlot, setNewTimeSlot] = useState('');
 
   useEffect(() => {
     fetchSettings();
@@ -77,9 +53,6 @@ export default function AdminSettings() {
           company_address: data.company_address || '',
           vat_percentage: data.vat_percentage || 21.0,
           currency: data.currency || 'EUR',
-          working_days: data.working_days || [1, 2, 3, 4, 5, 6],
-          time_slots: data.time_slots || [],
-          default_booking_duration: data.default_booking_duration || 4,
         });
       }
     } catch (err) {
@@ -89,37 +62,6 @@ export default function AdminSettings() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleWorkingDayToggle = (day: number) => {
-    if (formData.working_days.includes(day)) {
-      setFormData({
-        ...formData,
-        working_days: formData.working_days.filter((d) => d !== day),
-      });
-    } else {
-      setFormData({
-        ...formData,
-        working_days: [...formData.working_days, day].sort(),
-      });
-    }
-  };
-
-  const handleAddTimeSlot = () => {
-    if (newTimeSlot && !formData.time_slots.includes(newTimeSlot)) {
-      setFormData({
-        ...formData,
-        time_slots: [...formData.time_slots, newTimeSlot].sort(),
-      });
-      setNewTimeSlot('');
-    }
-  };
-
-  const handleRemoveTimeSlot = (slot: string) => {
-    setFormData({
-      ...formData,
-      time_slots: formData.time_slots.filter((s) => s !== slot),
-    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -186,9 +128,8 @@ export default function AdminSettings() {
         </Alert>
       )}
 
-      <form onSubmit={handleSubmit}>
-        {/* Bedrijfsgegevens */}
-        <Paper sx={{ p: 3, mb: 3 }}>
+      <Paper sx={{ p: 3 }}>
+        <form onSubmit={handleSubmit}>
           <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
             Bedrijfsgegevens
           </Typography>
@@ -269,132 +210,39 @@ export default function AdminSettings() {
                 placeholder="EUR"
               />
             </Grid>
+
+            <Grid item xs={12}>
+              <Button
+                type="submit"
+                variant="contained"
+                size="large"
+                startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
+                disabled={saving}
+              >
+                {saving ? 'Bezig met opslaan...' : 'Instellingen Opslaan'}
+              </Button>
+            </Grid>
           </Grid>
-        </Paper>
-
-        {/* Werkdagen */}
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-            Werkdagen
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Selecteer de dagen waarop klanten kunnen boeken
-          </Typography>
-
-          <FormControl component="fieldset">
-            <FormGroup row>
-              {weekDays.map((day) => (
-                <FormControlLabel
-                  key={day.value}
-                  control={
-                    <Checkbox
-                      checked={formData.working_days.includes(day.value)}
-                      onChange={() => handleWorkingDayToggle(day.value)}
-                    />
-                  }
-                  label={day.label}
-                />
-              ))}
-            </FormGroup>
-          </FormControl>
-        </Paper>
-
-        {/* Tijdslots */}
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-            Beschikbare Tijdslots
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Voeg tijdslots toe waarop klanten kunnen boeken (formaat: HH:MM)
-          </Typography>
-
-          <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-            <TextField
-              label="Nieuw tijdslot"
-              placeholder="09:00"
-              value={newTimeSlot}
-              onChange={(e) => setNewTimeSlot(e.target.value)}
-              type="time"
-              InputLabelProps={{ shrink: true }}
-            />
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleAddTimeSlot}
-            >
-              Toevoegen
-            </Button>
-          </Box>
-
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            {formData.time_slots.length === 0 ? (
-              <Alert severity="info">Nog geen tijdslots toegevoegd</Alert>
-            ) : (
-              formData.time_slots.map((slot) => (
-                <Chip
-                  key={slot}
-                  label={slot}
-                  onDelete={() => handleRemoveTimeSlot(slot)}
-                  color="primary"
-                  variant="outlined"
-                />
-              ))
-            )}
-          </Box>
-        </Paper>
-
-        {/* Boekingsinstellingen */}
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-            Boekingsinstellingen
-          </Typography>
-
-          <TextField
-            fullWidth
-            label="Standaard boekingsduur (uren)"
-            type="number"
-            value={formData.default_booking_duration}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                default_booking_duration: parseInt(e.target.value) || 1,
-              })
-            }
-            inputProps={{ min: 1, max: 24 }}
-            helperText="Standaard aantal uren per boeking"
-          />
-        </Paper>
-
-        {/* Save button */}
-        <Box>
-          <Button
-            type="submit"
-            variant="contained"
-            size="large"
-            startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
-            disabled={saving}
-          >
-            {saving ? 'Bezig met opslaan...' : 'Instellingen Opslaan'}
-          </Button>
-        </Box>
-      </form>
+        </form>
+      </Paper>
 
       {/* Info Box */}
       <Paper sx={{ p: 3, mt: 3, bgcolor: 'info.light' }}>
         <Typography variant="h6" gutterBottom color="info.contrastText">
-          ℹ️ Live Beschikbaarheid
+          ℹ️ Toekomstige Functies
         </Typography>
         <Typography variant="body2" color="info.contrastText">
-          De kalender op de boekingspagina toont nu live de beschikbaarheid:
+          De volgende functies kunnen in de toekomst worden toegevoegd:
         </Typography>
         <Box component="ul" sx={{ mt: 1, color: 'info.contrastText' }}>
-          <li>🟢 Groen = Beschikbaar</li>
-          <li>🟠 Oranje = In afwachting</li>
-          <li>🔴 Rood = Geboekt/Niet beschikbaar</li>
+          <li>💳 Stripe betalingsintegratie</li>
+          <li>🔔 E-mail notificaties bij nieuwe boekingen</li>
+          <li>🗺️ Meerdere verhuurlocaties</li>
+          <li>🧾 Automatische factuurgeneratie (PDF)</li>
+          <li>🌍 Meertaligheid (Nederlands/Engels)</li>
+          <li>🔒 Gebruikersrollen en rechtenbeheer</li>
+          <li>📱 Push notificaties</li>
         </Box>
-        <Typography variant="body2" color="info.contrastText" sx={{ mt: 1 }}>
-          Klanten kunnen alleen boeken op werkdagen en binnen de ingestelde tijdslots.
-        </Typography>
       </Paper>
     </Box>
   );

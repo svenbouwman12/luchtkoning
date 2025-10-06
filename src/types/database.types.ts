@@ -30,6 +30,8 @@ export interface Booking {
   customer_id: string;
   start_date: string;
   end_date: string;
+  start_time: string;
+  end_time: string;
   total_price: number;
   status: 'in behandeling' | 'bevestigd' | 'geannuleerd';
   created_at: string;
@@ -52,6 +54,9 @@ export interface Settings {
   company_address: string | null;
   vat_percentage: number;
   currency: string;
+  working_days: number[]; // 0=zondag, 1=maandag, etc.
+  time_slots: string[]; // ["09:00", "10:00", etc.]
+  default_booking_duration: number; // in uren
   updated_at: string;
 }
 
@@ -77,6 +82,8 @@ export interface BookingFormData {
   customerAddress: string;
   startDate: Date | null;
   endDate: Date | null;
+  startTime: string;
+  endTime: string;
   selectedItems: Array<{
     itemId: string;
     quantity: number;
@@ -103,5 +110,21 @@ export interface DashboardStats {
     count: number;
   } | null;
   uniqueCustomers: number;
+}
+
+// Beschikbaarheid status types
+export type AvailabilityStatus = 'available' | 'pending' | 'booked';
+
+export interface TimeSlotAvailability {
+  time: string;
+  status: AvailabilityStatus;
+  bookingId?: string;
+}
+
+export interface DateAvailability {
+  date: Date;
+  status: AvailabilityStatus;
+  timeSlots: TimeSlotAvailability[];
+  isWorkingDay: boolean;
 }
 

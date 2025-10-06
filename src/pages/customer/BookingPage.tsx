@@ -20,17 +20,23 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Stepper,
+  Step,
+  StepLabel,
 } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { supabase } from '@/lib/supabase';
 import { Item, BookingFormData } from '@/types/database.types';
-import { differenceInDays, isAfter, isBefore, parseISO } from 'date-fns';
+import { differenceInDays } from 'date-fns';
+import AvailabilityCalendar from '@/components/AvailabilityCalendar';
+import TimeSlotSelector from '@/components/TimeSlotSelector';
 
 interface SelectedItem {
   item: Item;
   quantity: number;
 }
+
+const steps = ['Kies datum', 'Kies tijd', 'Selecteer items', 'Uw gegevens'];
 
 export default function BookingPage() {
   const navigate = useNavigate();
@@ -41,6 +47,7 @@ export default function BookingPage() {
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeStep, setActiveStep] = useState(0);
 
   const [formData, setFormData] = useState<BookingFormData>({
     customerName: '',
@@ -49,6 +56,8 @@ export default function BookingPage() {
     customerAddress: '',
     startDate: null,
     endDate: null,
+    startTime: '',
+    endTime: '',
     selectedItems: [],
   });
 
@@ -57,7 +66,6 @@ export default function BookingPage() {
   }, []);
 
   useEffect(() => {
-    // Als er een item is voorgeselecteerd, voeg het toe
     if (preselectedItemId && items.length > 0) {
       const item = items.find((i) => i.id === preselectedItemId);
       if (item && !selectedItems.find((si) => si.item.id === item.id)) {
@@ -79,6 +87,15 @@ export default function BookingPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fout bij laden items');
     }
+  };
+
+  const handleDateSelect = (date: Date) => {
+    setFormData({ ...formData, startDate: date, endDate: date });
+    setActiveStep(1); // Ga naar tijd selectie
+  };
+
+  const handleTimeSelect = (startTime: string, endTime: string) => {
+    setFormData({ ...formData, startTime, endTime });
   };
 
   const handleAddItem = (itemId: string) => {
@@ -121,61 +138,20 @@ export default function BookingPage() {
     }, 0);
   };
 
-  const validateBooking = async (): Promise<boolean> => {
-    if (!formData.startDate || !formData.endDate) {
-      setError('Selecteer een start- en einddatum');
-      return false;
-    }
-
-    if (isBefore(formData.endDate, formData.startDate)) {
-      setError('Einddatum moet na startdatum zijn');
-      return false;
-    }
-
-    if (selectedItems.length === 0) {
-      setError('Selecteer minimaal één artikel');
-      return false;
-    }
-
-    // Check voor overlappende boekingen
-    for (const { item } of selectedItems) {
-      const { data: overlappingBookings } = await supabase
-        .from('booking_items')
-        .select('booking_id, bookings!inner(start_date, end_date, status)')
-        .eq('item_id', item.id);
-
-      if (overlappingBookings) {
-        for (const booking of overlappingBookings) {
-          const bookingData = booking.bookings as any;
-          if (bookingData.status === 'geannuleerd') continue;
-
-          const bookingStart = parseISO(bookingData.start_date);
-          const bookingEnd = parseISO(bookingData.end_date);
-
-          // Check overlap
-          if (
-            !(
-              isAfter(formData.startDate, bookingEnd) ||
-              isBefore(formData.endDate, bookingStart)
-            )
-          ) {
-            setError(
-              `${item.name} is al geboekt in de geselecteerde periode`
-            );
-            return false;
-          }
-        }
-      }
-    }
-
-    return true;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!(await validateBooking())) return;
+    // Validatie
+    if (!formData.startDate || !formData.startTime || !formData.endTime) {
+      setError('Selecteer een datum en tijd');
+      return;
+    }
+
+    if (selectedItems.length === 0) {
+      setError('Selecteer minimaal één artikel');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -190,7 +166,6 @@ export default function BookingPage() {
 
       if (existingCustomer) {
         customerId = existingCustomer.id;
-        // Update klantgegevens
         await supabase
           .from('customers')
           .update({
@@ -222,6 +197,8 @@ export default function BookingPage() {
           customer_id: customerId,
           start_date: formData.startDate!.toISOString().split('T')[0],
           end_date: formData.endDate!.toISOString().split('T')[0],
+          start_time: formData.startTime,
+          end_time: formData.endTime,
           total_price: calculateTotal(),
           status: 'in behandeling',
         })
@@ -260,13 +237,26 @@ export default function BookingPage() {
       ? differenceInDays(formData.endDate, formData.startDate) + 1
       : 0;
 
+  const canProceedToNextStep = () => {
+    switch (activeStep) {
+      case 0:
+        return formData.startDate !== null;
+      case 1:
+        return formData.startTime && formData.endTime;
+      case 2:
+        return selectedItems.length > 0;
+      default:
+        return true;
+    }
+  };
+
   return (
     <Box>
       <Typography variant="h3" gutterBottom sx={{ fontWeight: 600, mb: 1 }}>
         Boek uw evenement
       </Typography>
       <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-        Vul uw gegevens in en selecteer de gewenste artikelen
+        Volg de stappen om uw boeking te voltooien
       </Typography>
 
       {error && (
@@ -275,172 +265,209 @@ export default function BookingPage() {
         </Alert>
       )}
 
+      {/* Stepper */}
+      <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+        {steps.map((label) => (
+          <Step key={label}>
+            <StepLabel>{label}</StepLabel>
+          </Step>
+        ))}
+      </Stepper>
+
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3}>
-          {/* Linker kolom: Formulier */}
+          {/* Linker kolom: Stappen */}
           <Grid item xs={12} md={8}>
-            <Paper sx={{ p: 3, mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Uw gegevens
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Naam"
-                    required
-                    value={formData.customerName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, customerName: e.target.value })
-                    }
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="E-mail"
-                    type="email"
-                    required
-                    value={formData.customerEmail}
-                    onChange={(e) =>
-                      setFormData({ ...formData, customerEmail: e.target.value })
-                    }
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Telefoonnummer"
-                    required
-                    value={formData.customerPhone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, customerPhone: e.target.value })
-                    }
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Adres"
-                    required
-                    value={formData.customerAddress}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        customerAddress: e.target.value,
-                      })
-                    }
-                  />
-                </Grid>
-              </Grid>
-            </Paper>
+            {/* Stap 1: Datum selectie */}
+            {activeStep === 0 && (
+              <Paper sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  Selecteer een datum
+                </Typography>
+                <AvailabilityCalendar
+                  selectedDate={formData.startDate}
+                  onDateSelect={handleDateSelect}
+                />
+              </Paper>
+            )}
 
-            <Paper sx={{ p: 3, mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Datum selectie
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <DatePicker
-                    label="Startdatum"
-                    value={formData.startDate}
-                    onChange={(date) =>
-                      setFormData({ ...formData, startDate: date })
-                    }
-                    slotProps={{
-                      textField: { fullWidth: true, required: true },
-                    }}
-                    minDate={new Date()}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <DatePicker
-                    label="Einddatum"
-                    value={formData.endDate}
-                    onChange={(date) =>
-                      setFormData({ ...formData, endDate: date })
-                    }
-                    slotProps={{
-                      textField: { fullWidth: true, required: true },
-                    }}
-                    minDate={formData.startDate || new Date()}
-                  />
-                </Grid>
-              </Grid>
-              {numberOfDays > 0 && (
-                <Alert severity="info" sx={{ mt: 2 }}>
-                  Aantal dagen: {numberOfDays}
-                </Alert>
-              )}
-            </Paper>
+            {/* Stap 2: Tijd selectie */}
+            {activeStep === 1 && (
+              <Paper sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  Selecteer een tijdslot
+                </Typography>
+                <TimeSlotSelector
+                  selectedDate={formData.startDate}
+                  selectedStartTime={formData.startTime}
+                  selectedEndTime={formData.endTime}
+                  onTimeSelect={handleTimeSelect}
+                />
+                <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
+                  <Button onClick={() => setActiveStep(0)}>Vorige</Button>
+                  <Button
+                    variant="contained"
+                    onClick={() => setActiveStep(2)}
+                    disabled={!canProceedToNextStep()}
+                  >
+                    Volgende
+                  </Button>
+                </Box>
+              </Paper>
+            )}
 
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Artikelen selecteren
-              </Typography>
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel>Voeg artikel toe</InputLabel>
-                <Select
-                  value=""
-                  label="Voeg artikel toe"
-                  onChange={(e) => handleAddItem(e.target.value)}
-                >
-                  {items
-                    .filter(
-                      (item) =>
-                        !selectedItems.find((si) => si.item.id === item.id)
-                    )
-                    .map((item) => (
-                      <MenuItem key={item.id} value={item.id}>
-                        {item.name} - €{item.price_per_day.toFixed(2)}/dag
-                      </MenuItem>
-                    ))}
-                </Select>
-              </FormControl>
+            {/* Stap 3: Items selectie */}
+            {activeStep === 2 && (
+              <Paper sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  Selecteer artikelen
+                </Typography>
+                <FormControl fullWidth sx={{ mb: 2 }}>
+                  <InputLabel>Voeg artikel toe</InputLabel>
+                  <Select
+                    value=""
+                    label="Voeg artikel toe"
+                    onChange={(e) => handleAddItem(e.target.value)}
+                  >
+                    {items
+                      .filter(
+                        (item) =>
+                          !selectedItems.find((si) => si.item.id === item.id)
+                      )
+                      .map((item) => (
+                        <MenuItem key={item.id} value={item.id}>
+                          {item.name} - €{item.price_per_day.toFixed(2)}/dag
+                        </MenuItem>
+                      ))}
+                  </Select>
+                </FormControl>
 
-              {selectedItems.length === 0 ? (
-                <Alert severity="info">
-                  Nog geen artikelen geselecteerd. Voeg artikelen toe aan uw
-                  boeking.
-                </Alert>
-              ) : (
-                <List>
-                  {selectedItems.map(({ item, quantity }) => (
-                    <ListItem
-                      key={item.id}
-                      secondaryAction={
-                        <IconButton
-                          edge="end"
-                          onClick={() => handleRemoveItem(item.id)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      }
-                      sx={{ border: 1, borderColor: 'divider', mb: 1, borderRadius: 2 }}
-                    >
-                      <ListItemText
-                        primary={item.name}
-                        secondary={`€${item.price_per_day.toFixed(2)} per dag`}
-                      />
-                      <TextField
-                        type="number"
-                        label="Aantal"
-                        size="small"
-                        value={quantity}
-                        onChange={(e) =>
-                          handleQuantityChange(
-                            item.id,
-                            parseInt(e.target.value) || 1
-                          )
+                {selectedItems.length === 0 ? (
+                  <Alert severity="info">
+                    Nog geen artikelen geselecteerd. Voeg artikelen toe aan uw
+                    boeking.
+                  </Alert>
+                ) : (
+                  <List>
+                    {selectedItems.map(({ item, quantity }) => (
+                      <ListItem
+                        key={item.id}
+                        secondaryAction={
+                          <IconButton
+                            edge="end"
+                            onClick={() => handleRemoveItem(item.id)}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
                         }
-                        sx={{ width: 100, mr: 2 }}
-                        inputProps={{ min: 1 }}
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              )}
-            </Paper>
+                        sx={{ border: 1, borderColor: 'divider', mb: 1, borderRadius: 2 }}
+                      >
+                        <ListItemText
+                          primary={item.name}
+                          secondary={`€${item.price_per_day.toFixed(2)} per dag`}
+                        />
+                        <TextField
+                          type="number"
+                          label="Aantal"
+                          size="small"
+                          value={quantity}
+                          onChange={(e) =>
+                            handleQuantityChange(
+                              item.id,
+                              parseInt(e.target.value) || 1
+                            )
+                          }
+                          sx={{ width: 100, mr: 2 }}
+                          inputProps={{ min: 1 }}
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+
+                <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
+                  <Button onClick={() => setActiveStep(1)}>Vorige</Button>
+                  <Button
+                    variant="contained"
+                    onClick={() => setActiveStep(3)}
+                    disabled={!canProceedToNextStep()}
+                  >
+                    Volgende
+                  </Button>
+                </Box>
+              </Paper>
+            )}
+
+            {/* Stap 4: Klantgegevens */}
+            {activeStep === 3 && (
+              <Paper sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  Uw gegevens
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Naam"
+                      required
+                      value={formData.customerName}
+                      onChange={(e) =>
+                        setFormData({ ...formData, customerName: e.target.value })
+                      }
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="E-mail"
+                      type="email"
+                      required
+                      value={formData.customerEmail}
+                      onChange={(e) =>
+                        setFormData({ ...formData, customerEmail: e.target.value })
+                      }
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Telefoonnummer"
+                      required
+                      value={formData.customerPhone}
+                      onChange={(e) =>
+                        setFormData({ ...formData, customerPhone: e.target.value })
+                      }
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Adres"
+                      required
+                      value={formData.customerAddress}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          customerAddress: e.target.value,
+                        })
+                      }
+                    />
+                  </Grid>
+                </Grid>
+
+                <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
+                  <Button onClick={() => setActiveStep(2)}>Vorige</Button>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={loading}
+                    startIcon={loading ? <CircularProgress size={20} /> : null}
+                  >
+                    {loading ? 'Bezig...' : 'Boeking Bevestigen'}
+                  </Button>
+                </Box>
+              </Paper>
+            )}
           </Grid>
 
           {/* Rechter kolom: Samenvatting */}
@@ -452,22 +479,40 @@ export default function BookingPage() {
                 </Typography>
                 <Divider sx={{ my: 2 }} />
 
-                {selectedItems.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary">
-                    Nog geen artikelen geselecteerd
-                  </Typography>
-                ) : (
+                {formData.startDate && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Datum:
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      {formData.startDate.toLocaleDateString('nl-NL')}
+                    </Typography>
+                  </Box>
+                )}
+
+                {formData.startTime && formData.endTime && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Tijd:
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      {formData.startTime} - {formData.endTime}
+                    </Typography>
+                  </Box>
+                )}
+
+                {selectedItems.length > 0 && (
                   <>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Artikelen:
+                    </Typography>
                     {selectedItems.map(({ item, quantity }) => (
-                      <Box key={item.id} sx={{ mb: 2 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {item.name}
+                      <Box key={item.id} sx={{ mb: 1 }}>
+                        <Typography variant="body2">
+                          {quantity}x {item.name}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {quantity}x × €{item.price_per_day.toFixed(2)} × {numberOfDays} dagen
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          €{(item.price_per_day * quantity * numberOfDays).toFixed(2)}
+                          €{(item.price_per_day * quantity).toFixed(2)}/dag
                         </Typography>
                       </Box>
                     ))}
@@ -476,19 +521,6 @@ export default function BookingPage() {
                       sx={{
                         display: 'flex',
                         justifyContent: 'space-between',
-                        mb: 1,
-                      }}
-                    >
-                      <Typography variant="body2">Aantal dagen:</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {numberOfDays}
-                      </Typography>
-                    </Box>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        mb: 2,
                       }}
                     >
                       <Typography variant="h6">Totaal:</Typography>
@@ -499,16 +531,11 @@ export default function BookingPage() {
                   </>
                 )}
 
-                <Button
-                  type="submit"
-                  variant="contained"
-                  fullWidth
-                  size="large"
-                  disabled={loading || selectedItems.length === 0}
-                  startIcon={loading ? <CircularProgress size={20} /> : null}
-                >
-                  {loading ? 'Bezig...' : 'Boeking Bevestigen'}
-                </Button>
+                {selectedItems.length === 0 && (
+                  <Typography variant="body2" color="text.secondary">
+                    Nog geen artikelen geselecteerd
+                  </Typography>
+                )}
               </CardContent>
             </Card>
           </Grid>
